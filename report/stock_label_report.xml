@@ -1,5 +1,5 @@
 <odoo>
-    <!-- Plantilla QWeb -->
+    <!-- Plantilla QWeb del Reporte -->
     <template id="custom_stock_label_report_template">
         <t t-call="web.basic_layout">
             <t t-foreach="doc.move_ids_without_package" t-as="move_line">
@@ -16,7 +16,7 @@
         </t>
     </template>
 
-    <!-- Registro del reporte -->
+    <!-- Registro del Reporte -->
     <report
         id="custom_stock_label_report"
         model="stock.picking"
@@ -24,5 +24,6 @@
         report_type="qweb-pdf"
         file="stock_move_add_fields.custom_stock_label_report_template"
         name="stock_move_add_fields.custom_stock_label_report_template"
+        print_report_name="'Etiqueta - %s' % (object.name)"
     />
 </odoo>
