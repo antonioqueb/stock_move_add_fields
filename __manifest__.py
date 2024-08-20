@@ -5,8 +5,7 @@
     'summary': 'Add Gramaje, Ancho, Tipo, Kilos, and Planta fields to Stock Move',
     'depends': ['stock'],
     'data': [
-        'views/stock_picking_view.xml',  # Modificaciones de la vista de picking
-        'report/stock_label_report.xml',  # Reporte QWeb para las etiquetas
+        'views/stock_picking_view.xml'
     ],
     'installable': True,
     'application': False,
