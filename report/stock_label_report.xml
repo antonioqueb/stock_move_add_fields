@@ -1,6 +1,6 @@
 <odoo>
     <!-- Plantilla QWeb -->
-    <template id="custom_stock_label_report">
+    <template id="custom_stock_label_report_template">
         <t t-call="web.basic_layout">
             <t t-foreach="doc.move_ids_without_package" t-as="move_line">
                 <div style="page-break-after: always;">
@@ -22,7 +22,7 @@
         model="stock.picking"
         string="Custom Stock Label"
         report_type="qweb-pdf"
-        file="stock_move_add_fields.custom_stock_label_report"
-        name="stock_move_add_fields.custom_stock_label_report"
+        file="stock_move_add_fields.custom_stock_label_report_template"
+        name="stock_move_add_fields.custom_stock_label_report_template"
     />
 </odoo>

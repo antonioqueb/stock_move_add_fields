@@ -17,5 +17,5 @@ class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
     def action_open_label_type(self):
-        # Retorna la acción del reporte personalizado
+        # Asegúrate de que este ref corresponde al ID correcto en tu XML
         return self.env.ref('stock_move_add_fields.custom_stock_label_report').report_action(self)
