@@ -18,4 +18,4 @@ class StockPicking(models.Model):
 
     def action_open_label_type(self):
         # Asegúrate de que este ref corresponde al ID correcto en tu XML
-        return self.env.ref('stock_move_add_fields.custom_stock_label_report').report_action(self)
+        return self.env.ref('stock_move_add_fields.custom_stock_label_report_template').report_action(self)
