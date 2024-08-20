@@ -24,6 +24,5 @@
         report_type="qweb-pdf"
         file="stock_move_add_fields.custom_stock_label_report_template"
         name="stock_move_add_fields.custom_stock_label_report_template"
-        print_report_name="'Etiqueta - %s' % (object.name)"
     />
 </odoo>
