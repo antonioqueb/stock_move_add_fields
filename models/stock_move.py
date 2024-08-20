@@ -1,4 +1,3 @@
-# models\stock_move.py
 from odoo import fields, models
 
 class StockMove(models.Model):
@@ -11,11 +10,9 @@ class StockMove(models.Model):
     planta = fields.Char(string="Planta")
 
 
-
-
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
     def action_open_label_type(self):
-        # Asegúrate de que este ref corresponde al ID correcto en tu XML
-        return self.env.ref('stock_move_add_fields.custom_stock_label_report_template').report_action(self)
+        # Llama al reporte usando el ID correcto registrado en XML
+        return self.env.ref('stock_move_add_fields.custom_stock_label_report').report_action(self)
