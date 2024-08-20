@@ -1,4 +1,5 @@
 <odoo>
+    <!-- Plantilla QWeb -->
     <template id="custom_stock_label_report">
         <t t-call="web.basic_layout">
             <t t-foreach="doc.move_ids_without_package" t-as="move_line">
