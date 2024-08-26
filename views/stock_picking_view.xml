@@ -4,7 +4,7 @@
         <field name="model">stock.picking</field>
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
-            <!-- Apunta a la sección donde se encuentra el One2many de operaciones (líneas de movimiento) -->
+            <!-- Apunta a la sección de las líneas de movimiento, donde pertenece lot_id -->
             <xpath expr="//field[@name='move_line_ids']/tree" position="inside">
                 <field name="lot_id" string="Número de Serie/Folio" domain="[('product_id', '=', product_id)]"/>
                 <field name="gramaje" string="Gramaje"/>
