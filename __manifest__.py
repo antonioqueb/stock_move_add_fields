@@ -1,8 +1,8 @@
 {
     'name': 'Stock Move Customization for Product Rolls with Unique Properties',
-    'version': '1.0.0',
+    'version': '1.0.1',  # Actualizamos la versión porque hemos agregado una nueva funcionalidad
     'category': 'Stock',
-    'summary': 'Adds custom fields like Gramaje, Ancho, Tipo, Kilos, and Planta to stock move operations, specifically for product rolls with unique properties.',
+    'summary': 'Adds custom fields like Gramaje, Ancho, Tipo, Kilos, Planta, and integrates serial numbers in stock move operations.',
     'description': """
         Stock Move Customization for Product Rolls with Unique Properties
         ==================================================================
@@ -11,6 +11,7 @@
         Key Features:
         -------------
         - Custom fields added to stock moves: Gramaje, Ancho, Tipo, Kilos, Planta, and Folio.
+        - Serial number/lot integration through stock.move.line.
         - Tailored for industries dealing with products like rolls that have distinct attributes.
         - Seamlessly integrates with Odoo's native stock and inventory operations, providing enhanced control and precision.
 
@@ -28,7 +29,8 @@
     'maintainer': 'Alphaqueb Consulting S.A.S.',
     'depends': ['stock'],
     'data': [
-        'views/stock_picking_view.xml'
+        'views/stock_picking_view.xml',  # Mantiene la vista existente
+        'views/stock_move_line_view.xml',  # Añadimos la nueva vista para stock.move.line
     ],
     'installable': True,
     'application': False,
