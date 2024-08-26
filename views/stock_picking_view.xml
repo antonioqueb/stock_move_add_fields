@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <!-- Apunta a la sección donde se encuentra el One2many de operaciones -->
             <xpath expr="//field[@name='move_ids_without_package']/tree" position="inside">
+                <field name="lot_id" string="Número de Serie/Folio" domain="[('product_id', '=', product_id)]"/>
                 <field name="gramaje" string="Gramaje"/>
                 <field name="ancho" string="Ancho"/>
                 <field name="tipo" string="Tipo"/>
