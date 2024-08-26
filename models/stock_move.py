@@ -42,10 +42,15 @@ class StockMove(models.Model):
             key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
 
             if merge_into:
-                # Fusionar líneas de movimiento en la misma operación, actualizando las cantidades
+                # Fusionar las líneas de movimiento correspondientes, actualizando las cantidades de manera precisa
                 for move_line in move.move_line_ids:
                     merge_into_line = merge_into.move_line_ids.filtered(lambda l: l.product_id == move_line.product_id and
-                                                                         l.lot_id == move_line.lot_id)
+                                                                         l.lot_id == move_line.lot_id and
+                                                                         l.gramaje == move_line.gramaje and
+                                                                         l.ancho == move_line.ancho and
+                                                                         l.tipo == move_line.tipo and
+                                                                         l.kilos == move_line.kilos and
+                                                                         l.planta == move_line.planta)
                     if merge_into_line:
                         merge_into_line.qty_done += move_line.qty_done
                     else:
@@ -62,7 +67,12 @@ class StockMove(models.Model):
                 if existing_move:
                     for move_line in move.move_line_ids:
                         existing_line = existing_move.move_line_ids.filtered(lambda l: l.product_id == move_line.product_id and
-                                                                             l.lot_id == move_line.lot_id)
+                                                                             l.lot_id == move_line.lot_id and
+                                                                             l.gramaje == move_line.gramaje and
+                                                                             l.ancho == move_line.ancho and
+                                                                             l.tipo == move_line.tipo and
+                                                                             l.kilos == move_line.kilos and
+                                                                             l.planta == move_line.planta)
                         if existing_line:
                             existing_line.qty_done += move_line.qty_done
                         else:
