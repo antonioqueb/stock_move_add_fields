@@ -41,23 +41,38 @@ class StockMove(models.Model):
             # Crear una clave única basada en el producto y los campos personalizados
             key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
 
-            # Si `merge_into` está definido, agrupar los movimientos en esa línea de movimiento
             if merge_into:
-                merge_into.quantity_done += move.quantity_done
+                # Fusionar líneas de movimiento en la misma operación, actualizando las cantidades
+                for move_line in move.move_line_ids:
+                    merge_into_line = merge_into.move_line_ids.filtered(lambda l: l.product_id == move_line.product_id and
+                                                                         l.lot_id == move_line.lot_id)
+                    if merge_into_line:
+                        merge_into_line.qty_done += move_line.qty_done
+                    else:
+                        # Si no hay línea coincidente, copiarla al movimiento merge_into
+                        move_line.copy(default={'move_id': merge_into.id})
             else:
-                # Agrupar solo si ya existe una línea con la misma clave
+                # Agrupar solo si ya existe un movimiento con la misma clave
                 existing_move = grouped_moves.filtered(lambda m: m.product_id.id == move.product_id.id and
-                                                                m.gramaje == move.gramaje and
-                                                                m.ancho == move.ancho and
-                                                                m.tipo == move.tipo and
-                                                                m.kilos == move.kilos and
-                                                                m.planta == move.planta)
+                                                               m.gramaje == move.gramaje and
+                                                               m.ancho == move.ancho and
+                                                               m.tipo == move.tipo and
+                                                               m.kilos == move.kilos and
+                                                               m.planta == move.planta)
                 if existing_move:
-                    existing_move.quantity_done += move.quantity_done
+                    for move_line in move.move_line_ids:
+                        existing_line = existing_move.move_line_ids.filtered(lambda l: l.product_id == move_line.product_id and
+                                                                             l.lot_id == move_line.lot_id)
+                        if existing_line:
+                            existing_line.qty_done += move_line.qty_done
+                        else:
+                            # Copiar la línea al movimiento existente
+                            move_line.copy(default={'move_id': existing_move.id})
                 else:
                     grouped_moves += move
 
         return grouped_moves  # Devolvemos el recordset en lugar de una lista
+
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
