@@ -35,7 +35,8 @@ class StockMove(models.Model):
         Sobrecargar la lógica de agrupación de movimientos para considerar los campos personalizados.
         Ahora también acepta el argumento `merge_into`.
         """
-        grouped_moves = {}
+        grouped_moves = self.env['stock.move']  # Inicializamos un recordset vacío de stock.move
+
         for move in self:
             # Crear una clave única basada en el producto y los campos personalizados
             key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
@@ -45,12 +46,18 @@ class StockMove(models.Model):
                 merge_into.quantity_done += move.quantity_done
             else:
                 # Agrupar solo si ya existe una línea con la misma clave
-                if key in grouped_moves:
-                    grouped_moves[key].quantity_done += move.quantity_done
+                existing_move = grouped_moves.filtered(lambda m: m.product_id.id == move.product_id.id and
+                                                                m.gramaje == move.gramaje and
+                                                                m.ancho == move.ancho and
+                                                                m.tipo == move.tipo and
+                                                                m.kilos == move.kilos and
+                                                                m.planta == move.planta)
+                if existing_move:
+                    existing_move.quantity_done += move.quantity_done
                 else:
-                    grouped_moves[key] = move
+                    grouped_moves += move
 
-        return list(grouped_moves.values())
+        return grouped_moves  # Devolvemos el recordset en lugar de una lista
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
