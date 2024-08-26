@@ -10,7 +10,8 @@
                 <field name="tipo" string="Tipo"/>
                 <field name="kilos" string="Kilos"/>
                 <field name="planta" string="Planta"/>
-                <field name="nombre_campo_prueba" string="Prueba"/> <!-- Campo de prueba -->
+                <!-- Elimina el campo de prueba si no es necesario -->
+                <!-- <field name="nombre_campo_prueba" string="Prueba"/> -->
             </xpath>
         </field>
     </record>
