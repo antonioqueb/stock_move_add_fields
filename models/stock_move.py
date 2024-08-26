@@ -28,7 +28,6 @@ class StockMove(models.Model):
         Método para manejar la no agrupación de movimientos
         que tienen diferentes valores en campos personalizados.
         """
-        # Puedes implementar la lógica aquí si es necesario.
         pass
 
     def _merge_moves(self):
@@ -47,3 +46,12 @@ class StockMove(models.Model):
                 grouped_moves[key] = move
 
         return list(grouped_moves.values())
+
+class StockMoveLine(models.Model):
+    _inherit = 'stock.move.line'
+
+    gramaje = fields.Float(string="Gramaje")
+    ancho = fields.Float(string="Ancho")
+    tipo = fields.Char(string="Tipo")
+    kilos = fields.Float(string="Kilos")
+    planta = fields.Char(string="Planta")

@@ -1,6 +1,6 @@
 {
     'name': 'Stock Move Customization for Product Rolls with Unique Properties',
-    'version': '1.0.1',  # Actualizamos la versión porque hemos agregado una nueva funcionalidad
+    'version': '1.0.1',
     'category': 'Stock',
     'summary': 'Adds custom fields like Gramaje, Ancho, Tipo, Kilos, Planta, and integrates serial numbers in stock move operations.',
     'description': """
@@ -29,8 +29,8 @@
     'maintainer': 'Alphaqueb Consulting S.A.S.',
     'depends': ['stock'],
     'data': [
-        'views/stock_picking_view.xml',  # Mantiene la vista existente
-        'views/stock_move_line_view.xml',  # Añadimos la nueva vista para stock.move.line
+        'views/stock_picking_view.xml',  # Vista para stock.move
+        'views/stock_move_line_view.xml',  # Vista para stock.move.line
     ],
     'installable': True,
     'application': False,
