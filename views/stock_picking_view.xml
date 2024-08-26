@@ -1,16 +1,16 @@
 <odoo>
-    <record id="view_stock_move_line_tree_custom" model="ir.ui.view">
-        <field name="name">stock.move.line.tree.custom.fields</field>
-        <field name="model">stock.move.line</field> <!-- Asegúrate de apuntar a 'stock.move.line' -->
-        <field name="inherit_id" ref="stock.view_move_line_tree"/>
+    <record id="view_stock_move_tree_custom_gramaje" model="ir.ui.view">
+        <field name="name">stock.move.tree.custom.fields</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock.view_move_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//tree" position="inside">
-                <field name="lot_id" string="Número de Serie/Folio" domain="[('product_id', '=', product_id)]"/>
                 <field name="gramaje" string="Gramaje"/>
                 <field name="ancho" string="Ancho"/>
                 <field name="tipo" string="Tipo"/>
                 <field name="kilos" string="Kilos"/>
                 <field name="planta" string="Planta"/>
+                <field name="nombre_campo_prueba" string="Prueba"/> <!-- Campo de prueba -->
             </xpath>
         </field>
     </record>
