@@ -11,6 +11,7 @@
                 <field name="tipo" string="Tipo"/>
                 <field name="kilos" string="Kilos"/>
                 <field name="planta" string="Planta"/>
+                <field name="lot_id" string="Número de Serie/Lote"/> <!-- Agregamos el campo de número de serie/lote -->
             </xpath>
         </field>
     </record>
