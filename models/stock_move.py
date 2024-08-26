@@ -30,20 +30,25 @@ class StockMove(models.Model):
         """
         pass
 
-    def _merge_moves(self):
+    def _merge_moves(self, merge_into=None):
         """
         Sobrecargar la lógica de agrupación de movimientos para considerar los campos personalizados.
+        Ahora también acepta el argumento `merge_into`.
         """
         grouped_moves = {}
         for move in self:
             # Crear una clave única basada en el producto y los campos personalizados
             key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
-            
-            # Agrupar solo si ya existe una línea con la misma clave
-            if key in grouped_moves:
-                grouped_moves[key].quantity_done += move.quantity_done
+
+            # Si `merge_into` está definido, agrupar los movimientos en esa línea de movimiento
+            if merge_into:
+                merge_into.quantity_done += move.quantity_done
             else:
-                grouped_moves[key] = move
+                # Agrupar solo si ya existe una línea con la misma clave
+                if key in grouped_moves:
+                    grouped_moves[key].quantity_done += move.quantity_done
+                else:
+                    grouped_moves[key] = move
 
         return list(grouped_moves.values())
 
