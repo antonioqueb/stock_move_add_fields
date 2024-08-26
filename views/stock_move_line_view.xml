@@ -4,9 +4,14 @@
         <field name="model">stock.move.line</field>
         <field name="inherit_id" ref="stock.view_move_line_tree"/>
         <field name="arch" type="xml">
-            <!-- Añadimos la visualización de número de serie/lote en las líneas de movimiento -->
+            <!-- Asegura que el número de serie y los campos personalizados sean visibles -->
             <xpath expr="//field[@name='product_id']" position="after">
                 <field name="lot_id" string="Número de Serie/Lote"/>
+                <field name="gramaje" string="Gramaje"/>
+                <field name="ancho" string="Ancho"/>
+                <field name="tipo" string="Tipo"/>
+                <field name="kilos" string="Kilos"/>
+                <field name="planta" string="Planta"/>
             </xpath>
         </field>
     </record>
