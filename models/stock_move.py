@@ -11,13 +11,26 @@ class StockMove(models.Model):
 
     def _action_done(self, cancel_backorder=False):
         """
-        Sobrecargar para evitar que las líneas de movimientos se agrupen
-        si tienen diferentes valores en los campos personalizados.
+        Sobrecargamos el método para propagar campos personalizados a las líneas 
+        y además, si lo deseas, evitar que se agrupen movimientos con diferentes 
+        valores en esos campos.
         """
+        # Ejecutamos la lógica original
         res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
+        # Propagamos a cada línea los valores de los campos personalizados
         for move in self:
-            # Evitar la agrupación si las características personalizadas son diferentes
+            for move_line in move.move_line_ids:
+                move_line.write({
+                    'gramaje': move.gramaje,
+                    'ancho': move.ancho,
+                    'tipo': move.tipo,
+                    'kilos': move.kilos,
+                    'planta': move.planta,
+                })
+        
+            # Ejemplo de uso de tu método para evitar agrupación 
+            # si los campos personalizados están definidos
             if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
                 move._do_not_group_custom_fields()
 
@@ -27,30 +40,35 @@ class StockMove(models.Model):
         """
         Método para manejar la no agrupación de movimientos
         que tienen diferentes valores en campos personalizados.
+        Actualmente está vacío, pero si necesitases lógica adicional 
+        para marcar o forzar algún comportamiento, puedes implementarla aquí.
         """
         pass
 
     def _merge_moves(self, merge_into=None):
         """
-        Sobrecargar la lógica de agrupación de movimientos para considerar los campos personalizados.
-        Ahora también acepta el argumento `merge_into`.
+        Sobrecargamos la lógica de agrupación de movimientos para considerar
+        los campos personalizados. También acepta el argumento `merge_into` 
+        para fusionar movimientos en uno existente.
         """
-        grouped_moves = self.env['stock.move']  # Inicializamos un recordset vacío de stock.move
+        grouped_moves = self.env['stock.move']  # Recordset vacío de stock.move
 
         for move in self:
             # Crear una clave única basada en el producto y los campos personalizados
             key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
 
             if merge_into:
-                # Fusionar las líneas de movimiento correspondientes, actualizando las cantidades de manera precisa
+                # Fusionar las líneas de movimiento correspondientes, actualizando cantidades
                 for move_line in move.move_line_ids:
-                    merge_into_line = merge_into.move_line_ids.filtered(lambda l: l.product_id == move_line.product_id and
-                                                                         l.lot_id == move_line.lot_id and
-                                                                         l.gramaje == move_line.gramaje and
-                                                                         l.ancho == move_line.ancho and
-                                                                         l.tipo == move_line.tipo and
-                                                                         l.kilos == move_line.kilos and
-                                                                         l.planta == move_line.planta)
+                    merge_into_line = merge_into.move_line_ids.filtered(
+                        lambda l: l.product_id == move_line.product_id
+                                  and l.lot_id == move_line.lot_id
+                                  and l.gramaje == move_line.gramaje
+                                  and l.ancho == move_line.ancho
+                                  and l.tipo == move_line.tipo
+                                  and l.kilos == move_line.kilos
+                                  and l.planta == move_line.planta
+                    )
                     if merge_into_line:
                         merge_into_line.qty_done += move_line.qty_done
                     else:
@@ -58,21 +76,25 @@ class StockMove(models.Model):
                         move_line.copy(default={'move_id': merge_into.id})
             else:
                 # Agrupar solo si ya existe un movimiento con la misma clave
-                existing_move = grouped_moves.filtered(lambda m: m.product_id.id == move.product_id.id and
-                                                               m.gramaje == move.gramaje and
-                                                               m.ancho == move.ancho and
-                                                               m.tipo == move.tipo and
-                                                               m.kilos == move.kilos and
-                                                               m.planta == move.planta)
+                existing_move = grouped_moves.filtered(
+                    lambda m: m.product_id.id == move.product_id.id
+                              and m.gramaje == move.gramaje
+                              and m.ancho == move.ancho
+                              and m.tipo == move.tipo
+                              and m.kilos == move.kilos
+                              and m.planta == move.planta
+                )
                 if existing_move:
                     for move_line in move.move_line_ids:
-                        existing_line = existing_move.move_line_ids.filtered(lambda l: l.product_id == move_line.product_id and
-                                                                             l.lot_id == move_line.lot_id and
-                                                                             l.gramaje == move_line.gramaje and
-                                                                             l.ancho == move_line.ancho and
-                                                                             l.tipo == move_line.tipo and
-                                                                             l.kilos == move_line.kilos and
-                                                                             l.planta == move_line.planta)
+                        existing_line = existing_move.move_line_ids.filtered(
+                            lambda l: l.product_id == move_line.product_id
+                                      and l.lot_id == move_line.lot_id
+                                      and l.gramaje == move_line.gramaje
+                                      and l.ancho == move_line.ancho
+                                      and l.tipo == move_line.tipo
+                                      and l.kilos == move_line.kilos
+                                      and l.planta == move_line.planta
+                        )
                         if existing_line:
                             existing_line.qty_done += move_line.qty_done
                         else:
