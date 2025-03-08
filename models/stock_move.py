@@ -13,8 +13,19 @@ class StockMove(models.Model):
     planta = fields.Char(string="Planta")
 
     def _prepare_merge_move_distinct_fields(self):
+        """
+        Incluimos 'move_line_ids.lot_id' para que Odoo evite agrupar
+        movimientos con diferentes lotes en sus líneas.
+        """
         fields = super()._prepare_merge_move_distinct_fields()
-        custom_fields = ['gramaje', 'ancho', 'tipo', 'kilos', 'planta']
+        custom_fields = [
+            'gramaje',
+            'ancho',
+            'tipo',
+            'kilos',
+            'planta',
+            'move_line_ids.lot_id',  # <-- CAMBIO CLAVE
+        ]
         return fields + custom_fields
 
     def _action_done(self, cancel_backorder=False):
@@ -83,7 +94,7 @@ class StockMove(models.Model):
         grouped_moves = self.env['stock.move']
 
         for move in self:
-            # Añadimos lote en la clave para evitar agrupar si difiere
+            # Añadimos el lote a la clave para no fusionar si difieren en lotes
             lot_id = move.move_line_ids[:1].lot_id.id if move.move_line_ids else False
 
             key = (
@@ -132,8 +143,6 @@ class StockMoveLine(models.Model):
     kilos = fields.Float(string="Kilos")
     planta = fields.Char(string="Planta")
 
-    # Campo lot_name viene de Odoo (para productos con tracking="lot" o "serial").
-    # Implementamos un onchange para forzar la creación/búsqueda de un stock.lot
     @api.onchange('lot_name')
     def _onchange_lot_name_set_lot_id(self):
         """
