@@ -98,7 +98,11 @@ class StockMove(models.Model):
                     if existing_line:
                         existing_line.qty_done += line.qty_done
                     else:
-                        line.copy({'move_id': existing_move.id})
+                        # AQUÍ ES EL CAMBIO CLAVE: COPIAR EXPLÍCITAMENTE EL LOTE
+                        line.copy({
+                            'move_id': existing_move.id,
+                            'lot_id': line.lot_id.id if line.lot_id else False,
+                        })
                 move.state = 'cancel'
             else:
                 moves_by_key[key] = move
@@ -106,7 +110,6 @@ class StockMove(models.Model):
 
         _logger.info("Finalizando agrupación de movimientos. Movimientos agrupados resultantes: %s", grouped_moves.ids)
         return grouped_moves
-
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
