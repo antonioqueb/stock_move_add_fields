@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -20,14 +20,14 @@ class StockMove(models.Model):
     def _action_done(self, cancel_backorder=False):
         _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
         res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
-
         for move in self:
+            # Para debug: ¿qué lotes vienen en las move_line_ids?
+            _logger.info("StockMove %s con lotes: %s", move.id, move.move_line_ids.mapped('lot_id.name'))
             if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
                 move._do_not_group_custom_fields()
         return res
 
     def _do_not_group_custom_fields(self):
-        # Método sin contenido por si deseas ampliar la lógica en el futuro
         pass
 
     def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
@@ -39,6 +39,28 @@ class StockMove(models.Model):
             'kilos': self.kilos,
             'planta': self.planta,
         })
+
+        # ASIGNAR AUTOMÁTICAMENTE LOT_ID SI:
+        # - El producto lleva tracking
+        # - Aún no está asignado un lote
+        product = self.product_id
+        if product.tracking != 'none' and not vals.get('lot_id'):
+            # Búscamos un lote ya existente (por ejemplo, uno con nombre "LOTE-ROLLOS")
+            #  o crea uno si no existe. Ajusta la lógica a tus necesidades
+            existing_lot = self.env['stock.lot'].search([
+                ('product_id', '=', product.id),
+                # Opcional: ('name', '=', 'LOTE-UNICO'),
+            ], limit=1)
+            if existing_lot:
+                vals['lot_id'] = existing_lot.id
+            else:
+                new_lot = self.env['stock.lot'].create({
+                    'product_id': product.id,
+                    'name': 'LOTE-UNICO',  # Cambia a tu nomenclatura preferida
+                    # 'company_id': self.company_id.id, si deseas forzar la misma compañía
+                })
+                vals['lot_id'] = new_lot.id
+
         return vals
 
     def _merge_moves(self, merge_into=False):
@@ -48,10 +70,9 @@ class StockMove(models.Model):
         grouped_moves = self.env['stock.move']
 
         for move in self:
-            # Obtenemos un lote de referencia si es que hay líneas
+            # Obtenemos un lote de referencia si hay al menos una línea
             lot_id = move.move_line_ids[:1].lot_id.id if move.move_line_ids else False
 
-            # Incluimos lot_id en la clave para diferenciar cuando sea distinto
             key = (
                 move.product_id.id,
                 move.gramaje,
@@ -65,7 +86,6 @@ class StockMove(models.Model):
             if key in moves_by_key:
                 existing_move = moves_by_key[key]
                 for line in move.move_line_ids:
-                    # Se busca una línea que comparta exactamente lote y campos personalizados
                     existing_line = existing_move.move_line_ids.filtered(lambda l: (
                         l.product_id == move.product_id and
                         l.lot_id == line.lot_id and
