@@ -19,17 +19,6 @@ class StockMove(models.Model):
 
     def _action_done(self, cancel_backorder=False):
         _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
-
-        for move in self:
-            for line in move.move_line_ids:
-                _logger.info("Mov: %s - Prod: %s - Lote: %s - Cantidad: %s", 
-                             move.id, move.product_id.display_name, 
-                             line.lot_id.name if line.lot_id else "SIN LOTE", 
-                             line.product_uom_qty)
-
-                if move.product_id.tracking in ['lot', 'serial'] and not line.lot_id:
-                    _logger.warning("FALTA LOTE para el producto: %s", move.product_id.display_name)
-
         res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
 
         for move in self:
@@ -41,8 +30,8 @@ class StockMove(models.Model):
     def _do_not_group_custom_fields(self):
         pass
 
-    def _prepare_move_line_vals(self):
-        vals = super()._prepare_move_line_vals()
+    def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
+        vals = super()._prepare_move_line_vals(quantity, reserved_quant)
         vals.update({
             'gramaje': self.gramaje,
             'ancho': self.ancho,
@@ -65,15 +54,16 @@ class StockMove(models.Model):
                 existing_move = moves_by_key[key]
                 for line in move.move_line_ids:
                     existing_line = existing_move.move_line_ids.filtered(lambda l: l.product_id == move.product_id and l.lot_id == line.lot_id and
-                                                                          l.gramaje == line.gramaje and l.ancho == line.ancho and l.tipo == line.tipo and
-                                                                          l.kilos == line.kilos and l.planta == line.planta)
+                                                                        l.gramaje == line.gramaje and l.ancho == line.ancho and l.tipo == line.tipo and
+                                                                        l.kilos == line.kilos and l.planta == line.planta)
                     if existing_line:
-                        existing_line.product_uom_qty += line.product_uom_qty
+                        existing_line.qty_done += line.qty_done
                     else:
-                        new_line = line.copy({'move_id': existing_move.id, 'lot_id': line.lot_id.id if line.lot_id else False})
-                        _logger.info("Copiando línea de stock con lote: %s", line.lot_id.name if line.lot_id else "SIN LOTE")
-
+                        new_line = line.copy({'move_id': existing_move.id})
+                        if line.lot_id:
+                            new_line.lot_id = line.lot_id  # Asegurar que el lote se mantiene
                 move.state = 'cancel'
+
             else:
                 moves_by_key[key] = move
                 grouped_moves |= move
