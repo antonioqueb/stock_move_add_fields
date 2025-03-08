@@ -24,10 +24,10 @@ class StockMove(models.Model):
         for move in self:
             if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
                 move._do_not_group_custom_fields()
-
         return res
 
     def _do_not_group_custom_fields(self):
+        # Método sin contenido por si deseas ampliar la lógica en el futuro
         pass
 
     def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
@@ -48,22 +48,40 @@ class StockMove(models.Model):
         grouped_moves = self.env['stock.move']
 
         for move in self:
-            key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
+            # Obtenemos un lote de referencia si es que hay líneas
+            lot_id = move.move_line_ids[:1].lot_id.id if move.move_line_ids else False
+
+            # Incluimos lot_id en la clave para diferenciar cuando sea distinto
+            key = (
+                move.product_id.id,
+                move.gramaje,
+                move.ancho,
+                move.tipo,
+                move.kilos,
+                move.planta,
+                lot_id
+            )
 
             if key in moves_by_key:
                 existing_move = moves_by_key[key]
                 for line in move.move_line_ids:
-                    existing_line = existing_move.move_line_ids.filtered(lambda l: l.product_id == move.product_id and l.lot_id == line.lot_id and
-                                                                        l.gramaje == line.gramaje and l.ancho == line.ancho and l.tipo == line.tipo and
-                                                                        l.kilos == line.kilos and l.planta == line.planta)
+                    # Se busca una línea que comparta exactamente lote y campos personalizados
+                    existing_line = existing_move.move_line_ids.filtered(lambda l: (
+                        l.product_id == move.product_id and
+                        l.lot_id == line.lot_id and
+                        l.gramaje == line.gramaje and
+                        l.ancho == line.ancho and
+                        l.tipo == line.tipo and
+                        l.kilos == line.kilos and
+                        l.planta == line.planta
+                    ))
                     if existing_line:
                         existing_line.qty_done += line.qty_done
                     else:
                         new_line = line.copy({'move_id': existing_move.id})
                         if line.lot_id:
-                            new_line.lot_id = line.lot_id  # Asegurar que el lote se mantiene
+                            new_line.lot_id = line.lot_id
                 move.state = 'cancel'
-
             else:
                 moves_by_key[key] = move
                 grouped_moves |= move
