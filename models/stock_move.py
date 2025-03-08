@@ -3,7 +3,6 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-
 class StockMove(models.Model):
     _inherit = 'stock.move'
 
@@ -19,17 +18,48 @@ class StockMove(models.Model):
         return fields + custom_fields
 
     def _action_done(self, cancel_backorder=False):
-        _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
-        res = super()._action_done(cancel_backorder=cancel_backorder)
+        """
+        Antes de validar definitivamente, agrupamos las move_line_ids
+        por la combinación de producto + campos personalizados. 
+        Si alguna línea no tiene lot_id, le asignamos el de otra línea del grupo 
+        (si es que hay una que ya lo tenga).
+        """
         for move in self:
-            # Solo para debug: ¿qué lotes se asignaron a cada move?
+            lines_by_key = {}
+            # Agrupar las líneas por (product_id, gramaje, ancho, tipo, kilos, planta)
+            for line in move.move_line_ids:
+                key = (
+                    line.product_id.id,
+                    line.gramaje,
+                    line.ancho,
+                    line.tipo,
+                    line.kilos,
+                    line.planta,
+                )
+                lines_by_key.setdefault(key, []).append(line)
+
+            # Propagar el lot_id a líneas sin lote del mismo grupo
+            for key, group_lines in lines_by_key.items():
+                # Tomamos la primera línea con lot_id en ese grupo
+                lot_id_any = next((l.lot_id for l in group_lines if l.lot_id), False)
+                if lot_id_any:
+                    for l in group_lines:
+                        if not l.lot_id:
+                            l.lot_id = lot_id_any
+
+        _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
+        res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
+
+        # Solo a modo de debug adicional
+        for move in self:
             _logger.info("StockMove %s con lotes: %s", move.id, move.move_line_ids.mapped('lot_id.name'))
             if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
                 move._do_not_group_custom_fields()
+
         return res
 
     def _do_not_group_custom_fields(self):
-        # Método vacío, por si deseas extender la lógica
+        # Método vacío, por si deseas extender la lógica en un futuro
         pass
 
     def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
@@ -111,7 +141,6 @@ class StockMoveLine(models.Model):
         Luego se asigna a lot_id, para que al validar no falte la trazabilidad.
         """
         if self.product_id and self.lot_name:
-            # Verificamos si ya existe un lote para ese producto con el nombre dado
             existing_lot = self.env['stock.lot'].search([
                 ('product_id', '=', self.product_id.id),
                 ('name', '=', self.lot_name)
@@ -119,12 +148,10 @@ class StockMoveLine(models.Model):
             if existing_lot:
                 self.lot_id = existing_lot
             else:
-                # Creamos un nuevo lote con el nombre tecleado
                 new_lot = self.env['stock.lot'].create({
                     'product_id': self.product_id.id,
                     'name': self.lot_name
                 })
                 self.lot_id = new_lot
         else:
-            # Si lot_name está vacío, dejamos lot_id en blanco
             self.lot_id = False
