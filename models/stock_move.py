@@ -99,11 +99,15 @@ class StockMove(models.Model):
                     if existing_line:
                         existing_line.qty_done += line.qty_done
                     else:
-                        # AQUÍ ES EL CAMBIO CLAVE: COPIAR EXPLÍCITAMENTE EL LOTE
-                        line.copy({
+                        # Aquí está la corrección definitiva:
+                        new_line = line.copy({
                             'move_id': existing_move.id,
-                            'lot_id': line.lot_id.id if line.lot_id else False,
+                            # NO ASIGNAR lot_id AQUÍ DIRECTAMENTE.
                         })
+                        # Asignamos explícitamente el lot_id después de crear la línea
+                        if line.lot_id:
+                            new_line.write({'lot_id': line.lot_id.id})
+
                 move.state = 'cancel'
             else:
                 moves_by_key[key] = move
