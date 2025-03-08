@@ -44,12 +44,10 @@ class StockMove(models.Model):
         _logger.info("Iniciando validación (_action_done). Movimientos: %s", self.ids)
         res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
         
-        # (opcional) Registro informativo tras validación exitosa
         for move in self:
             _logger.info("StockMove %s validado con lotes: %s", move.id, move.move_line_ids.mapped('lot_id.name'))
 
         return res
-
 
     def _do_not_group_custom_fields(self):
         # Método vacío, por si deseas extender la lógica en un futuro
