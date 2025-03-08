@@ -35,9 +35,10 @@ class StockMove(models.Model):
             if product.tracking != 'none':
                 lines_without_lot = move.move_line_ids.filtered(lambda l: not l.lot_id)
                 if lines_without_lot:
+                    missing_lots_lines = "\n".join(lines_without_lot.mapped('product_id.display_name'))
                     raise UserError(
                         "No se ha asignado lote a todas las líneas para el producto '%s'. "
-                        "Por favor verifica las líneas antes de validar." % product.display_name
+                        "Por favor verifica las líneas antes de validar.\n Líneas afectadas:\n%s" % (product.display_name, missing_lots_lines)
                     )
 
         _logger.info("Iniciando validación (_action_done). Movimientos: %s", self.ids)
