@@ -153,3 +153,16 @@ class StockMoveLine(models.Model):
                 self.lot_id = new_lot
         else:
             self.lot_id = False
+
+class StockPicking(models.Model):
+    _inherit = 'stock.picking'
+
+    def button_validate(self):
+        for picking in self:
+            for move_line in picking.move_line_ids:
+                if move_line.product_id.tracking != 'none' and not move_line.lot_id:
+                    raise UserError(
+                        "Debe proporcionar un número de lote/de serie para el producto:\n"
+                        "- [%s] %s" % (move_line.product_id.default_code, move_line.product_id.name)
+                    )
+        return super(StockPicking, self).button_validate()
