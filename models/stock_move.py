@@ -26,7 +26,6 @@ class StockMove(models.Model):
             'tipo',
             'kilos',
             'planta',
-            'move_line_ids.lot_id',
         ]
         return fields + custom_fields
 
