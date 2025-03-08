@@ -54,13 +54,16 @@ class StockMove(models.Model):
                 existing_move = moves_by_key[key]
                 for line in move.move_line_ids:
                     existing_line = existing_move.move_line_ids.filtered(lambda l: l.product_id == move.product_id and l.lot_id == line.lot_id and
-                                                                         l.gramaje == line.gramaje and l.ancho == line.ancho and l.tipo == line.tipo and
-                                                                         l.kilos == line.kilos and l.planta == line.planta)
+                                                                        l.gramaje == line.gramaje and l.ancho == line.ancho and l.tipo == line.tipo and
+                                                                        l.kilos == line.kilos and l.planta == line.planta)
                     if existing_line:
                         existing_line.qty_done += line.qty_done
                     else:
-                        line.copy({'move_id': existing_move.id})
+                        new_line = line.copy({'move_id': existing_move.id})
+                        if line.lot_id:
+                            new_line.lot_id = line.lot_id  # Asegurar que el lote se mantiene
                 move.state = 'cancel'
+
             else:
                 moves_by_key[key] = move
                 grouped_moves |= move
