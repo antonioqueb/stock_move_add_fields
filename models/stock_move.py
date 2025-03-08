@@ -25,7 +25,7 @@ class StockMove(models.Model):
                 _logger.info("Mov: %s - Prod: %s - Lote: %s - Cantidad: %s", 
                              move.id, move.product_id.display_name, 
                              line.lot_id.name if line.lot_id else "SIN LOTE", 
-                             line.qty_done)
+                             line.quantity_done)
 
                 if move.product_id.tracking in ['lot', 'serial'] and not line.lot_id:
                     _logger.warning("FALTA LOTE para el producto: %s", move.product_id.display_name)
@@ -68,7 +68,7 @@ class StockMove(models.Model):
                                                                           l.gramaje == line.gramaje and l.ancho == line.ancho and l.tipo == line.tipo and
                                                                           l.kilos == line.kilos and l.planta == line.planta)
                     if existing_line:
-                        existing_line.qty_done += line.qty_done
+                        existing_line.quantity_done += line.quantity_done
                     else:
                         new_line = line.copy({'move_id': existing_move.id, 'lot_id': line.lot_id.id if line.lot_id else False})
                         _logger.info("Copiando línea de stock con lote: %s", line.lot_id.name if line.lot_id else "SIN LOTE")
