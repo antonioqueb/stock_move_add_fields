@@ -107,6 +107,10 @@ class StockMove(models.Model):
                         # Asignamos explícitamente el lot_id después de crear la línea
                         if line.lot_id:
                             new_line.write({'lot_id': line.lot_id.id})
+                            _logger.info(
+                                "Asignado lote '%s' a la nueva línea de movimiento %s",
+                                line.lot_id.name, new_line.id
+                            )
 
                 move.state = 'cancel'
             else:
