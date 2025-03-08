@@ -118,3 +118,6 @@ class StockMoveLine(models.Model):
     tipo = fields.Char(string="Tipo")
     kilos = fields.Float(string="Kilos")
     planta = fields.Char(string="Planta")
+
+
+# Funcional
