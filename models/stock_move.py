@@ -77,11 +77,6 @@ class StockMove(models.Model):
         grouped_moves = self.env['stock.move']
 
         for move in self:
-            # Se registra la información de las líneas del movimiento antes de procesarlo
-            _logger.info("Lines of move %s before merging: %s", move.id, move.move_line_ids.read(['lot_id', 'lot_name']))
-            
-            # Añadimos el lote a la clave para no fusionar si difieren en lotes
-            lot_id = next((line.lot_id.id for line in move.move_line_ids if line.lot_id), False)
             key = (
                 move.product_id.id,
                 move.gramaje,
@@ -89,14 +84,13 @@ class StockMove(models.Model):
                 move.tipo,
                 move.kilos,
                 move.planta,
-                lot_id
             )
 
             if key in moves_by_key:
                 existing_move = moves_by_key[key]
                 for line in move.move_line_ids:
                     existing_line = existing_move.move_line_ids.filtered(lambda l: (
-                        l.product_id == move.product_id and
+                        l.product_id == line.product_id and
                         l.lot_id == line.lot_id and
                         l.gramaje == line.gramaje and
                         l.ancho == line.ancho and
@@ -107,9 +101,7 @@ class StockMove(models.Model):
                     if existing_line:
                         existing_line.qty_done += line.qty_done
                     else:
-                        new_line = line.copy({'move_id': existing_move.id})
-                        if line.lot_id:
-                            new_line.lot_id = line.lot_id
+                        line.copy({'move_id': existing_move.id})
                 move.state = 'cancel'
             else:
                 moves_by_key[key] = move
@@ -117,7 +109,6 @@ class StockMove(models.Model):
 
         _logger.info("Finalizando agrupación de movimientos. Movimientos agrupados resultantes: %s", grouped_moves.ids)
         return grouped_moves
-
 
 
 class StockMoveLine(models.Model):
