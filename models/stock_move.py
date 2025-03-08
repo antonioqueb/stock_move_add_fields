@@ -24,7 +24,7 @@ class StockMove(models.Model):
             'tipo',
             'kilos',
             'planta',
-            'move_line_ids.lot_id',  # <-- CAMBIO CLAVE
+            'move_line_ids.lot_id',
         ]
         return fields + custom_fields
 
@@ -82,6 +82,7 @@ class StockMove(models.Model):
             'tipo': self.tipo,
             'kilos': self.kilos,
             'planta': self.planta,
+            
         })
         # NO se asigna lot_id automáticamente, 
         # se usará el onchange en StockMoveLine para crearlo/ligarlo desde lot_name
@@ -94,9 +95,11 @@ class StockMove(models.Model):
         grouped_moves = self.env['stock.move']
 
         for move in self:
+            # Se registra la información de las líneas del movimiento antes de procesarlo
+            _logger.info("Lines of move %s before merging: %s", move.id, move.move_line_ids.read(['lot_id', 'lot_name']))
+            
             # Añadimos el lote a la clave para no fusionar si difieren en lotes
             lot_id = move.move_line_ids[:1].lot_id.id if move.move_line_ids else False
-
             key = (
                 move.product_id.id,
                 move.gramaje,
@@ -132,6 +135,7 @@ class StockMove(models.Model):
 
         _logger.info("Finalizando agrupación de movimientos. Movimientos agrupados resultantes: %s", grouped_moves.ids)
         return grouped_moves
+
 
 
 class StockMoveLine(models.Model):
