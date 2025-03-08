@@ -21,7 +21,7 @@ class StockMove(models.Model):
         _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
         res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
         for move in self:
-            # Para debug: ¿qué lotes vienen en las move_line_ids?
+            # Verifica qué lotes se asignaron
             _logger.info("StockMove %s con lotes: %s", move.id, move.move_line_ids.mapped('lot_id.name'))
             if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
                 move._do_not_group_custom_fields()
@@ -39,28 +39,8 @@ class StockMove(models.Model):
             'kilos': self.kilos,
             'planta': self.planta,
         })
-
-        # ASIGNAR AUTOMÁTICAMENTE LOT_ID SI:
-        # - El producto lleva tracking
-        # - Aún no está asignado un lote
-        product = self.product_id
-        if product.tracking != 'none' and not vals.get('lot_id'):
-            # Búscamos un lote ya existente (por ejemplo, uno con nombre "LOTE-ROLLOS")
-            #  o crea uno si no existe. Ajusta la lógica a tus necesidades
-            existing_lot = self.env['stock.lot'].search([
-                ('product_id', '=', product.id),
-                # Opcional: ('name', '=', 'LOTE-UNICO'),
-            ], limit=1)
-            if existing_lot:
-                vals['lot_id'] = existing_lot.id
-            else:
-                new_lot = self.env['stock.lot'].create({
-                    'product_id': product.id,
-                    'name': 'LOTE-UNICO',  # Cambia a tu nomenclatura preferida
-                    # 'company_id': self.company_id.id, si deseas forzar la misma compañía
-                })
-                vals['lot_id'] = new_lot.id
-
+        # Aquí NO forzamos la asignación de lot_id;
+        # el usuario lo asigna manualmente en la interfaz.
         return vals
 
     def _merge_moves(self, merge_into=False):
@@ -70,7 +50,7 @@ class StockMove(models.Model):
         grouped_moves = self.env['stock.move']
 
         for move in self:
-            # Obtenemos un lote de referencia si hay al menos una línea
+            # Para que la agrupación considere también el lote, si existe
             lot_id = move.move_line_ids[:1].lot_id.id if move.move_line_ids else False
 
             key = (
@@ -118,6 +98,3 @@ class StockMoveLine(models.Model):
     tipo = fields.Char(string="Tipo")
     kilos = fields.Float(string="Kilos")
     planta = fields.Char(string="Planta")
-
-
-# Funcional
