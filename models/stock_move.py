@@ -99,7 +99,7 @@ class StockMove(models.Model):
             _logger.info("Lines of move %s before merging: %s", move.id, move.move_line_ids.read(['lot_id', 'lot_name']))
             
             # Añadimos el lote a la clave para no fusionar si difieren en lotes
-            lot_id = move.move_line_ids[:1].lot_id.id if move.move_line_ids else False
+            lot_id = next((line.lot_id.id for line in move.move_line_ids if line.lot_id), False)
             key = (
                 move.product_id.id,
                 move.gramaje,
