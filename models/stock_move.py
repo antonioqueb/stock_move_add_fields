@@ -29,45 +29,25 @@ class StockMove(models.Model):
         return fields + custom_fields
 
     def _action_done(self, cancel_backorder=False):
-        """
-        Antes de validar definitivamente, agrupamos las move_line_ids
-        por la combinación de producto + campos personalizados. 
-        Si alguna línea no tiene lot_id, le asignamos el de otra línea del grupo 
-        (si es que hay una que ya lo tenga).
-        """
         for move in self:
-            lines_by_key = {}
-            # Agrupar las líneas por (product_id, gramaje, ancho, tipo, kilos, planta)
-            for line in move.move_line_ids:
-                key = (
-                    line.product_id.id,
-                    line.gramaje,
-                    line.ancho,
-                    line.tipo,
-                    line.kilos,
-                    line.planta,
-                )
-                lines_by_key.setdefault(key, []).append(line)
+            product = move.product_id
+            if product.tracking != 'none':
+                lines_without_lot = move.move_line_ids.filtered(lambda l: not l.lot_id)
+                if lines_without_lot:
+                    raise UserError(
+                        "No se ha asignado lote a todas las líneas para el producto '%s'. "
+                        "Por favor verifica las líneas antes de validar." % product.display_name
+                    )
 
-            # Propagar el lot_id a líneas sin lote del mismo grupo
-            for key, group_lines in lines_by_key.items():
-                # Tomamos la primera línea con lot_id en ese grupo
-                lot_id_any = next((l.lot_id for l in group_lines if l.lot_id), False)
-                if lot_id_any:
-                    for l in group_lines:
-                        if not l.lot_id:
-                            l.lot_id = lot_id_any
-
-        _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
+        _logger.info("Iniciando validación (_action_done). Movimientos: %s", self.ids)
         res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
-
-        # Solo a modo de debug adicional
+        
+        # (opcional) Registro informativo tras validación exitosa
         for move in self:
-            _logger.info("StockMove %s con lotes: %s", move.id, move.move_line_ids.mapped('lot_id.name'))
-            if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
-                move._do_not_group_custom_fields()
+            _logger.info("StockMove %s validado con lotes: %s", move.id, move.move_line_ids.mapped('lot_id.name'))
 
         return res
+
 
     def _do_not_group_custom_fields(self):
         # Método vacío, por si deseas extender la lógica en un futuro
