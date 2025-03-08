@@ -1,4 +1,7 @@
 from odoo import fields, models
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class StockMove(models.Model):
     _inherit = 'stock.move'
@@ -10,101 +13,91 @@ class StockMove(models.Model):
     planta = fields.Char(string="Planta")
 
     def _action_done(self, cancel_backorder=False):
-        """
-        Sobrecargamos el método para propagar campos personalizados a las líneas 
-        y además, si lo deseas, evitar que se agrupen movimientos con diferentes 
-        valores en esos campos.
-        """
-        # Ejecutamos la lógica original
-        res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
+        _logger.info("Iniciando validación de movimientos (_action_done). Movimientos a procesar: %s", self.ids)
+        try:
+            res = super(StockMove, self)._action_done(cancel_backorder=cancel_backorder)
+        except Exception as e:
+            _logger.exception("Error durante super(_action_done): %s", e)
+            raise e
 
-        # Propagamos a cada línea los valores de los campos personalizados
         for move in self:
-            for move_line in move.move_line_ids:
-                move_line.write({
-                    'gramaje': move.gramaje,
-                    'ancho': move.ancho,
-                    'tipo': move.tipo,
-                    'kilos': move.kilos,
-                    'planta': move.planta,
-                })
-        
-            # Ejemplo de uso de tu método para evitar agrupación 
-            # si los campos personalizados están definidos
-            if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
-                move._do_not_group_custom_fields()
+            _logger.info("Verificando campos personalizados del movimiento (ID: %s). Gramaje: %s, Ancho: %s, Tipo: %s, Kilos: %s, Planta: %s",
+                         move.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
 
+            if move.gramaje or move.ancho or move.tipo or move.kilos or move.planta:
+                _logger.info("Llamando a método _do_not_group_custom_fields para movimiento ID: %s", move.id)
+                move._do_not_group_custom_fields()
+            else:
+                _logger.info("Movimiento ID: %s no tiene campos personalizados, omitiendo método _do_not_group_custom_fields.", move.id)
+
+        _logger.info("Finalizando validación de movimientos (_action_done).")
         return res
 
     def _do_not_group_custom_fields(self):
-        """
-        Método para manejar la no agrupación de movimientos
-        que tienen diferentes valores en campos personalizados.
-        Actualmente está vacío, pero si necesitases lógica adicional 
-        para marcar o forzar algún comportamiento, puedes implementarla aquí.
-        """
+        _logger.info("Ejecutado _do_not_group_custom_fields para movimiento ID: %s", self.id)
+        # De momento no tiene implementación, aquí podrías poner código adicional si necesario.
         pass
 
     def _merge_moves(self, merge_into=None):
-        """
-        Sobrecargamos la lógica de agrupación de movimientos para considerar
-        los campos personalizados. También acepta el argumento `merge_into` 
-        para fusionar movimientos en uno existente.
-        """
-        grouped_moves = self.env['stock.move']  # Recordset vacío de stock.move
+        _logger.info("Iniciando agrupación de movimientos (_merge_moves). merge_into: %s", merge_into.id if merge_into else "None")
+        grouped_moves = self.env['stock.move']
 
         for move in self:
-            # Crear una clave única basada en el producto y los campos personalizados
             key = (move.product_id.id, move.gramaje, move.ancho, move.tipo, move.kilos, move.planta)
+            _logger.info("Clave generada para movimiento ID %s: %s", move.id, key)
 
             if merge_into:
-                # Fusionar las líneas de movimiento correspondientes, actualizando cantidades
                 for move_line in move.move_line_ids:
-                    merge_into_line = merge_into.move_line_ids.filtered(
-                        lambda l: l.product_id == move_line.product_id
-                                  and l.lot_id == move_line.lot_id
-                                  and l.gramaje == move_line.gramaje
-                                  and l.ancho == move_line.ancho
-                                  and l.tipo == move_line.tipo
-                                  and l.kilos == move_line.kilos
-                                  and l.planta == move_line.planta
-                    )
+                    merge_into_line = merge_into.move_line_ids.filtered(lambda l:
+                        l.product_id == move_line.product_id and
+                        l.lot_id == move_line.lot_id and
+                        l.gramaje == move_line.gramaje and
+                        l.ancho == move_line.ancho and
+                        l.tipo == move_line.tipo and
+                        l.kilos == move_line.kilos and
+                        l.planta == move_line.planta)
+
                     if merge_into_line:
+                        _logger.info("Agrupando línea existente (ID: %s) qty_done antes: %s + %s", 
+                                     merge_into_line.id, merge_into_line.qty_done, move_line.qty_done)
                         merge_into_line.qty_done += move_line.qty_done
                     else:
-                        # Si no hay línea coincidente, copiarla al movimiento merge_into
+                        _logger.info("Copiando línea (ID original: %s) al movimiento merge_into ID: %s", move_line.id, merge_into.id)
                         move_line.copy(default={'move_id': merge_into.id})
             else:
-                # Agrupar solo si ya existe un movimiento con la misma clave
-                existing_move = grouped_moves.filtered(
-                    lambda m: m.product_id.id == move.product_id.id
-                              and m.gramaje == move.gramaje
-                              and m.ancho == move.ancho
-                              and m.tipo == move.tipo
-                              and m.kilos == move.kilos
-                              and m.planta == move.planta
-                )
+                existing_move = grouped_moves.filtered(lambda m:
+                    m.product_id.id == move.product_id.id and
+                    m.gramaje == move.gramaje and
+                    m.ancho == move.ancho and
+                    m.tipo == move.tipo and
+                    m.kilos == move.kilos and
+                    m.planta == move.planta)
+
                 if existing_move:
+                    _logger.info("Movimiento existente encontrado para agrupación: ID %s", existing_move.id)
                     for move_line in move.move_line_ids:
-                        existing_line = existing_move.move_line_ids.filtered(
-                            lambda l: l.product_id == move_line.product_id
-                                      and l.lot_id == move_line.lot_id
-                                      and l.gramaje == move_line.gramaje
-                                      and l.ancho == move_line.ancho
-                                      and l.tipo == move_line.tipo
-                                      and l.kilos == move_line.kilos
-                                      and l.planta == move_line.planta
-                        )
+                        existing_line = existing_move.move_line_ids.filtered(lambda l:
+                            l.product_id == move_line.product_id and
+                            l.lot_id == move_line.lot_id and
+                            l.gramaje == move_line.gramaje and
+                            l.ancho == move_line.ancho and
+                            l.tipo == move_line.tipo and
+                            l.kilos == move_line.kilos and
+                            l.planta == move_line.planta)
+
                         if existing_line:
+                            _logger.info("Agrupando línea existente (ID: %s) qty_done antes: %s + %s", 
+                                         existing_line.id, existing_line.qty_done, move_line.qty_done)
                             existing_line.qty_done += move_line.qty_done
                         else:
-                            # Copiar la línea al movimiento existente
+                            _logger.info("Copiando línea (ID original: %s) al movimiento existente ID: %s", move_line.id, existing_move.id)
                             move_line.copy(default={'move_id': existing_move.id})
                 else:
+                    _logger.info("Agregando nuevo movimiento a agrupación: ID %s", move.id)
                     grouped_moves += move
 
-        return grouped_moves  # Devolvemos el recordset en lugar de una lista
-
+        _logger.info("Finalizando agrupación de movimientos. Movimientos agrupados resultantes: %s", grouped_moves.ids)
+        return grouped_moves
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
