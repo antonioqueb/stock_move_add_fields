@@ -99,18 +99,21 @@ class StockMove(models.Model):
                     if existing_line:
                         existing_line.qty_done += line.qty_done
                     else:
-                        # Aquí está la corrección definitiva:
-                        new_line = line.copy({
+                        # CREAR EXPLÍCITAMENTE en vez de copiar la línea existente
+                        self.env['stock.move.line'].create({
                             'move_id': existing_move.id,
-                            # NO ASIGNAR lot_id AQUÍ DIRECTAMENTE.
+                            'product_id': line.product_id.id,
+                            'location_id': line.location_id.id,
+                            'location_dest_id': line.location_dest_id.id,
+                            'qty_done': line.qty_done,
+                            'lot_id': line.lot_id.id if line.lot_id else False,
+                            'gramaje': line.gramaje,
+                            'ancho': line.ancho,
+                            'tipo': line.tipo,
+                            'kilos': line.kilos,
+                            'planta': line.planta,
+                            'product_uom_id': line.product_uom_id.id,
                         })
-                        # Asignamos explícitamente el lot_id después de crear la línea
-                        if line.lot_id:
-                            new_line.write({'lot_id': line.lot_id.id})
-                            _logger.info(
-                                "Asignado lote '%s' a la nueva línea de movimiento %s",
-                                line.lot_id.name, new_line.id
-                            )
 
                 move.state = 'cancel'
             else:
