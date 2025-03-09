@@ -55,18 +55,32 @@ class StockMove(models.Model):
 
     def _prepare_move_line_vals(self, quantity=None, reserved_quant=None):
         vals = super()._prepare_move_line_vals(quantity, reserved_quant)
-        # Copiamos los campos custom al move line
         vals.update({
             'gramaje': self.gramaje,
             'ancho': self.ancho,
             'tipo': self.tipo,
             'kilos': self.kilos,
             'planta': self.planta,
-            
         })
-        # NO se asigna lot_id automáticamente, 
-        # se usará el onchange en StockMoveLine para crearlo/ligarlo desde lot_name
+
+        # ASIGNAR AUTOMÁTICAMENTE EL LOTE FIJO "LOT-PRUEBA"
+        product = self.product_id
+        if product.tracking != 'none':  # Solo si el producto requiere lotes
+            lot_prueba = self.env['stock.lot'].search([
+                ('product_id', '=', product.id),
+                ('name', '=', 'LOT-PRUEBA')
+            ], limit=1)
+
+            if not lot_prueba:
+                lot_prueba = self.env['stock.lot'].create({
+                    'product_id': product.id,
+                    'name': 'LOT-PRUEBA'
+                })
+            
+            vals['lot_id'] = lot_prueba.id  # Se asigna el lote fijo a todas las líneas
+
         return vals
+
 
     def _merge_moves(self, merge_into=False):
         _logger.info("Iniciando agrupación de movimientos (_merge_moves). merge_into: %s", merge_into)
