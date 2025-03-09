@@ -83,60 +83,70 @@ class StockMove(models.Model):
 
 
     def _merge_moves(self, merge_into=False):
-        _logger.info("Iniciando agrupación de movimientos (_merge_moves). merge_into: %s", merge_into)
+            _logger.info("Iniciando agrupación de movimientos (_merge_moves). merge_into: %s", merge_into)
 
-        moves_by_key = {}
-        grouped_moves = self.env['stock.move']
+            moves_by_key = {}
+            grouped_moves = self.env['stock.move']
 
-        for move in self:
-            key = (
-                move.product_id.id,
-                move.gramaje,
-                move.ancho,
-                move.tipo,
-                move.kilos,
-                move.planta,
-            )
+            for move in self:
+                key = (
+                    move.product_id.id,
+                    move.gramaje,
+                    move.ancho,
+                    move.tipo,
+                    move.kilos,
+                    move.planta,
+                )
 
-            if key in moves_by_key:
-                existing_move = moves_by_key[key]
-                for line in move.move_line_ids:
-                    existing_line = existing_move.move_line_ids.filtered(lambda l: (
-                        l.product_id == line.product_id and
-                        l.lot_id == line.lot_id and
-                        l.gramaje == line.gramaje and
-                        l.ancho == line.ancho and
-                        l.tipo == line.tipo and
-                        l.kilos == line.kilos and
-                        l.planta == line.planta
-                    ))
-                    if existing_line:
-                        existing_line.qty_done += line.qty_done
-                    else:
-                        # CREAR EXPLÍCITAMENTE en vez de copiar la línea existente
-                        self.env['stock.move.line'].create({
-                            'move_id': existing_move.id,
-                            'product_id': line.product_id.id,
-                            'location_id': line.location_id.id,
-                            'location_dest_id': line.location_dest_id.id,
-                            'qty_done': line.qty_done,
-                            'lot_id': line.lot_id.id if line.lot_id else False,
-                            'gramaje': line.gramaje,
-                            'ancho': line.ancho,
-                            'tipo': line.tipo,
-                            'kilos': line.kilos,
-                            'planta': line.planta,
-                            'product_uom_id': line.product_uom_id.id,
-                        })
+                if key in moves_by_key:
+                    existing_move = moves_by_key[key]
+                    
+                    for line in move.move_line_ids:
+                        existing_line = existing_move.move_line_ids.filtered(lambda l: (
+                            l.product_id == line.product_id and
+                            l.lot_id == line.lot_id and
+                            l.gramaje == line.gramaje and
+                            l.ancho == line.ancho and
+                            l.tipo == line.tipo and
+                            l.kilos == line.kilos and
+                            l.planta == line.planta
+                        ))
+                        
+                        if existing_line:
+                            if hasattr(existing_line, 'qty_done') and hasattr(line, 'qty_done'):
+                                _logger.info(
+                                    "Sumando qty_done en línea existente: Línea ID: %s (antes: %s) + Línea ID: %s (antes: %s)",
+                                    existing_line.id, existing_line.qty_done, line.id, line.qty_done
+                                )
+                                existing_line.qty_done += line.qty_done
+                            else:
+                                _logger.warning("No se puede modificar qty_done, línea existente: %s, línea nueva: %s", existing_line, line)
+                        else:
+                            _logger.info("Creando nueva línea de movimiento para agrupar")
+                            new_line = self.env['stock.move.line'].create({
+                                'move_id': existing_move.id,
+                                'product_id': line.product_id.id,
+                                'location_id': line.location_id.id,
+                                'location_dest_id': line.location_dest_id.id,
+                                'qty_done': line.qty_done if hasattr(line, 'qty_done') else 0,
+                                'lot_id': line.lot_id.id if line.lot_id else False,
+                                'gramaje': line.gramaje,
+                                'ancho': line.ancho,
+                                'tipo': line.tipo,
+                                'kilos': line.kilos,
+                                'planta': line.planta,
+                                'product_uom_id': line.product_uom_id.id,
+                            })
+                            _logger.info("Nueva línea creada: %s con qty_done: %s", new_line.id, new_line.qty_done)
+                    
+                    move.state = 'cancel'
+                else:
+                    moves_by_key[key] = move
+                    grouped_moves |= move
+                    _logger.info("Nuevo movimiento agregado al grupo: %s", move.id)
 
-                move.state = 'cancel'
-            else:
-                moves_by_key[key] = move
-                grouped_moves |= move
-
-        _logger.info("Finalizando agrupación de movimientos. Movimientos agrupados resultantes: %s", grouped_moves.ids)
-        return grouped_moves
-
+            _logger.info("Finalizando agrupación de movimientos. Movimientos agrupados resultantes: %s", grouped_moves.ids)
+            return grouped_moves
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
